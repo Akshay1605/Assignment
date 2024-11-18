@@ -9,7 +9,7 @@ const PORT = 3000;
 app.use(express.json());
 
 
-const mongoURI = 'mongodb+srv://admin:root@cluster0.zkos7.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+const mongoURI = process.env.MONGODB_URI;
 
 mongoose.connect(mongoURI)
   .then(() => console.log('Connected to MongoDB Atlas!'))
