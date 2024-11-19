@@ -1,14 +1,21 @@
-// api/todos.js
 const mongoose = require('mongoose');
 const Todo = require('../models/todo');
 
 const mongoURI = process.env.MONGODB_URI;
 
-mongoose.connect(mongoURI)
-  .then(() => console.log('Connected to MongoDB Atlas!'))
-  .catch((error) => console.error('Error connecting to MongoDB:', error));
+let isConnected = false; // Track connection state
+
+const connectToDatabase = async () => {
+  if (!isConnected) {
+    await mongoose.connect(mongoURI);
+    isConnected = true;
+    console.log('Connected to MongoDB Atlas!');
+  }
+};
 
 module.exports = async (req, res) => {
+  await connectToDatabase(); // Ensure connection is established
+
   const { method } = req;
 
   if (method === 'GET') {
@@ -18,6 +25,7 @@ module.exports = async (req, res) => {
     } catch (error) {
       res.status(500).json({ error: 'Failed to retrieve to-dos' });
     }
+    return; // End the function after responding
   }
 
   if (method === 'POST') {
@@ -34,6 +42,7 @@ module.exports = async (req, res) => {
     } catch (error) {
       res.status(500).json({ error: 'Failed to create to-do' });
     }
+    return;
   }
 
   if (method === 'PUT') {
@@ -57,6 +66,7 @@ module.exports = async (req, res) => {
     } catch (error) {
       res.status(500).json({ error: 'Failed to update to-do' });
     }
+    return;
   }
 
   if (method === 'DELETE') {
@@ -71,6 +81,7 @@ module.exports = async (req, res) => {
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete to-do' });
     }
+    return;
   }
 
   res.status(404).json({ error: 'Route not found' });
