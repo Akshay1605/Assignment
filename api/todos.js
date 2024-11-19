@@ -1,42 +1,77 @@
 // api/todos.js
-const express = require('express');
 const mongoose = require('mongoose');
-const Todo = require('../models/todo'); // Adjust this path as necessary
+const Todo = require('../models/todo');
 
-const app = express();
-app.use(express.json());
+const mongoURI = process.env.MONGODB_URI;
 
-// MongoDB connection
-const mongoURI = process.env.MONGODB_URI; // Use environment variables in Vercel
 mongoose.connect(mongoURI)
   .then(() => console.log('Connected to MongoDB Atlas!'))
   .catch((error) => console.error('Error connecting to MongoDB:', error));
 
-// Define the POST and GET routes
-app.post('/todos', async (req, res) => {
+module.exports = async (req, res) => {
+  const { method } = req;
+
+  if (method === 'GET') {
+    try {
+      const todos = await Todo.find();
+      res.status(200).json(todos);
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to retrieve to-dos' });
+    }
+  }
+
+  if (method === 'POST') {
     const { title, description } = req.body;
 
     if (!title) {
-        return res.status(400).json({ error: 'Title is required' });
+      return res.status(400).json({ error: 'Title is required' });
     }
 
     try {
-        const todo = new Todo({ title, description });
-        const savedTodo = await todo.save();
-        res.status(201).json(savedTodo);
+      const todo = new Todo({ title, description });
+      const savedTodo = await todo.save();
+      res.status(201).json(savedTodo);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to create to-do' });
+      res.status(500).json({ error: 'Failed to create to-do' });
     }
-});
+  }
 
-app.get('/todos', async (req, res) => {
+  if (method === 'PUT') {
+    const { id } = req.query;
+    const { title, description, completed } = req.body;
+
+    if (!title) {
+      return res.status(400).json({ error: 'Title is required' });
+    }
+
     try {
-        const todos = await Todo.find();
-        res.status(200).json(todos);
+      const todo = await Todo.findByIdAndUpdate(
+        id,
+        { title, description, completed },
+        { new: true }
+      );
+      if (!todo) {
+        return res.status(404).json({ error: 'To-do not found' });
+      }
+      res.status(200).json(todo);
     } catch (error) {
-        res.status(500).json({ error: 'Failed to retrieve to-dos' });
+      res.status(500).json({ error: 'Failed to update to-do' });
     }
-});
+  }
 
-// Export the app as a serverless function for Vercel
-module.exports = app;
+  if (method === 'DELETE') {
+    const { id } = req.query;
+
+    try {
+      const todo = await Todo.findByIdAndDelete(id);
+      if (!todo) {
+        return res.status(404).json({ error: 'To-do not found' });
+      }
+      res.status(200).json({ message: 'To-do item deleted successfully' });
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete to-do' });
+    }
+  }
+
+  res.status(404).json({ error: 'Route not found' });
+};
